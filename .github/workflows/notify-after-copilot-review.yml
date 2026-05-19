@@ -1,0 +1,21 @@
+name: Notify PR author after Copilot review
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  notify:
+    # Copilotのbotアカウントからのレビューのみを対象にする
+    if: github.event.review.user.login == 'copilot-pull-request-reviewer[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Mention PR author
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "@${{ github.event.pull_request.user.login }} Copilotのレビューが完了しました。ご確認ください。"
