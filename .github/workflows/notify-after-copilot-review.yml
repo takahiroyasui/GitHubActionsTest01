@@ -6,15 +6,15 @@ on:
 
 jobs:
   notify:
+    if: github.event.review.user.login == 'Copilot'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
-      - name: Debug review info
+      - name: Mention PR author
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "review.user.login: ${{ github.event.review.user.login }}"
-          echo "review.user.type: ${{ github.event.review.user.type }}"
-          echo "review.state: ${{ github.event.review.state }}"
-          echo "pull_request.user.login: ${{ github.event.pull_request.user.login }}"
-          echo "sender.login: ${{ github.event.sender.login }}"
-          echo "sender.type: ${{ github.event.sender.type }}"
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "@${{ github.event.pull_request.user.login }} Copilotのレビューが完了しました。ご確認ください。"
