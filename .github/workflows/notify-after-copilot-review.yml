@@ -1,20 +1,73 @@
-name: Notify PR author after Copilot review
-
+name: Notify after Copilot code review
 on:
-  pull_request_review:
-    types: [submitted]
+  workflow_run:
+    workflows:
+      - "Copilot code review"
+    types:
+      - completed
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
 
 jobs:
   notify:
-    if: github.event.review.user.login == 'Copilot'
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
+
     steps:
-      - name: Mention PR author
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr comment ${{ github.event.pull_request.number }} \
-            --repo ${{ github.repository }} \
-            --body "@${{ github.event.pull_request.user.login }} Copilotのレビューが完了しました。ご確認ください。"
+      - name: Notify PR author
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+
+            // Copilot review run に紐づく PR がない場合は終了
+            const prs = run.pull_requests || [];
+            if (prs.length === 0) {
+              core.info("No pull request is associated with this workflow run.");
+              return;
+            }
+
+            const prNumber = prs[0].number;
+
+            const { owner, repo } = context.repo;
+
+            // PR 情報を取得して作成者を確認
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+
+            const author = pr.user.login;
+
+            // workflow_run の再実行などで二重投稿しないためのマーカー
+            const marker = `<!-- copilot-review-complete:${run.id} -->`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: prNumber,
+              per_page: 100,
+            });
+
+            const alreadyPosted = comments.some(comment =>
+              comment.body && comment.body.includes(marker)
+            );
+
+            if (alreadyPosted) {
+              core.info("Notification comment already exists.");
+              return;
+            }
+
+            const conclusionText = run.conclusion
+              ? `結果: \`${run.conclusion}\``
+              : "結果: 不明";
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body: `${marker}\n@${author} GitHub Copilot の Pull Request コードレビューが完了しました。\n\n${conclusionText}`,
+            });
