@@ -43,4 +43,4 @@ jobs:
             リポジトリ全体の探索は行わず、変更されたファイルのみ確認してください。
           claude_args: |
             --max-turns 25
-            --model claude-opus-4-8
+            --model claude-opus-4-7
