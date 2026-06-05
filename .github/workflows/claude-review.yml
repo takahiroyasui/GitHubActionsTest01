@@ -38,8 +38,9 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # CLAUDE.md をClaudeが読む前提のため prompt は最小限にする
           prompt: |
-            CLAUDE.md の指針に従い、このPRの変更内容をレビューしてください。
-            問題があれば該当ファイルの行にインラインコメントを投稿してください。
+            このPRの変更差分のみをレビュー対象とし、CLAUDE.md の指針に従って
+            重要度の高い指摘を最大5件まで、該当行へのインラインコメントで投稿してください。
+            リポジトリ全体の探索は行わず、変更されたファイルのみ確認してください。
           claude_args: |
-            --max-turns 10
+            --max-turns 25
             --model claude-opus-4-8
