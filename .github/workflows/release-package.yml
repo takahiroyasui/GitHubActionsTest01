@@ -1,0 +1,43 @@
+name: Release Unity Package
+
+on:
+  release:
+    types: [published] # GitHubで「Release」が公開されたら自動起動
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # リリースにファイルを添付するために必須
+
+    steps:
+      # 1. リポジトリのコードをチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          lfs: true
+
+      # 2. Unityを使わずに .unitypackage を作成
+      - name: Create UnityPackage
+        uses: natsuneko-laboratory/create-unitypackage@bbb27c1e955b84b7063c1db9ff3430d40bc3e110 # v3.2.0
+        with:
+          # ▼ 全体を指定し、不要なGit系ファイル・フォルダを「!」で除外する
+          files-glob: |
+            **/*
+            !.github/**/*
+            !.gitignore
+            !.gitattributes
+            !*.sln
+            !*.csproj
+
+          # .gitignore に書かれた不要ファイル（Library, Logs, UserSettings等）は自動除外
+          respect-gitignore: true
+          
+          # 出力するファイル名
+          dest: 'MyPackage-${{ github.event.release.tag_name }}.unitypackage'
+
+      # 3. 生成された .unitypackage を Release に自動添付
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: 'MyPackage-${{ github.event.release.tag_name }}.unitypackage'
